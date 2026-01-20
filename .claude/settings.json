@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "stooq-mcp": {
+      "command": "/Users/fru/.stooq-mcp/target/release/stooq-mcp"
+    }
+  }
+}

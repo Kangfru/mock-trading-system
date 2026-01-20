@@ -1,0 +1,16 @@
+# Latency 최적화 프로파일 - 빠른 응답 시간
+app:
+  kafka:
+    topic:
+      order: stock-orders-latency
+    producer:
+      batch-size: 1          # 배치 안 함
+      linger-ms: 0           # 즉시 전송
+      buffer-memory: 33554432
+      compression-type: none # 압축 안 함
+      acks: "1"
+    consumer:
+      fetch-min-bytes: 1     # 즉시 fetch
+      fetch-max-wait-ms: 100
+      max-poll-records: 100
+      concurrency: 1

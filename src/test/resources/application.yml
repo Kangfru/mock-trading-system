@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: mock-trading-system
+  main:
+    allow-bean-definition-overriding: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: test-consumer-group
+
+app:
+  kafka:
+    topic:
+      order: test-orders
+    producer:
+      batch-size: 65536
+      linger-ms: 10
+      buffer-memory: 67108864
+      compression-type: lz4
+      acks: "1"
+    consumer:
+      fetch-min-bytes: 50000
+      fetch-max-wait-ms: 200
+      max-poll-records: 1000
+      concurrency: 3
+  snowflake:
+    node-id: 1

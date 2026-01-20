@@ -1,0 +1,16 @@
+# Throughput 최적화 프로파일 - 높은 처리량
+app:
+  kafka:
+    topic:
+      order: stock-orders-throughput
+    producer:
+      batch-size: 131072     # 128KB 배치
+      linger-ms: 50          # 50ms 대기
+      buffer-memory: 134217728  # 128MB 버퍼
+      compression-type: lz4
+      acks: "1"
+    consumer:
+      fetch-min-bytes: 100000  # 100KB 이상 모아서 fetch
+      fetch-max-wait-ms: 500
+      max-poll-records: 2000
+      concurrency: 6           # 파티션 수만큼

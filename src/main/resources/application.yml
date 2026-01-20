@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: mock-trading-system
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: order-consumer-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.kangfru.mocktradingsystem.domain
+
+app:
+  kafka:
+    topic:
+      order: stock-orders-tuned
+    # Producer 튜닝
+    producer:
+      batch-size: 65536        # 64KB (기본 16KB)
+      linger-ms: 10            # 10ms 대기 후 배치 전송
+      buffer-memory: 67108864  # 64MB 버퍼
+      compression-type: lz4    # LZ4 압축 (빠른 압축/해제)
+      acks: "1"                # Leader만 확인 (throughput 우선)
+    # Consumer 튜닝
+    consumer:
+      fetch-min-bytes: 50000   # 최소 50KB fetch
+      fetch-max-wait-ms: 200   # 최대 200ms 대기
+      max-poll-records: 1000   # 한 번에 1000개 레코드
+      concurrency: 3           # 3개 병렬 Consumer
+  snowflake:
+    node-id: 1
+
