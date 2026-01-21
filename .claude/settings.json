@@ -1,8 +1,5 @@
 {
   "mcpServers": {
-    "stooq-mcp": {
-      "command": "/Users/fru/.stooq-mcp/target/release/stooq-mcp"
-    },
     "context7": {
       "type": "http",
       "url": "https://mcp.context7.com/mcp"
