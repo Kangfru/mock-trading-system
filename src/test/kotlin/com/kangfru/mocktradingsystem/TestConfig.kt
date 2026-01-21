@@ -9,11 +9,8 @@ import org.springframework.kafka.core.KafkaTemplate
 
 @TestConfiguration
 class TestConfig {
-
     @Bean
     @Primary
     @Suppress("UNCHECKED_CAST")
-    fun kafkaTemplate(): KafkaTemplate<String, Order> {
-        return Mockito.mock(KafkaTemplate::class.java) as KafkaTemplate<String, Order>
-    }
+    fun kafkaTemplate(): KafkaTemplate<String, Order> = Mockito.mock(KafkaTemplate::class.java) as KafkaTemplate<String, Order>
 }

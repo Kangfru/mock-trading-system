@@ -13,33 +13,38 @@ import kotlin.concurrent.withLock
 
 @Component
 class StooqClient(
-    private val webClient: WebClient
+    private val webClient: WebClient,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val lock = ReentrantLock()
     private var lastRequestTime: Long = 0
-    private val minIntervalMs: Long = 1000  // 최소 1초 간격
+    private val minIntervalMs: Long = 1000 // 최소 1초 간격
 
-    fun getQuote(symbol: String, market: String = "us"): StockQuote? {
+    fun getQuote(
+        symbol: String,
+        market: String = "us",
+    ): StockQuote? {
         throttle()
 
         val fullSymbol = "${symbol.lowercase()}.$market"
         logger.info("[STOOQ] 시세 조회 요청: {}", fullSymbol)
 
         return try {
-            val response = webClient.get()
-                .uri { uriBuilder ->
-                    uriBuilder.path("/q/l/")
-                        .queryParam("s", fullSymbol)
-                        .queryParam("f", "sd2t2ohlcv")
-                        .queryParam("h")
-                        .queryParam("e", "csv")
-                        .build()
-                }
-                .retrieve()
-                .bodyToMono(String::class.java)
-                .block()
+            val response =
+                webClient
+                    .get()
+                    .uri { uriBuilder ->
+                        uriBuilder
+                            .path("/q/l/")
+                            .queryParam("s", fullSymbol)
+                            .queryParam("f", "sd2t2ohlcv")
+                            .queryParam("h")
+                            .queryParam("e", "csv")
+                            .build()
+                    }.retrieve()
+                    .bodyToMono(String::class.java)
+                    .block()
 
             parseResponse(response)
         } catch (e: Exception) {
@@ -87,7 +92,7 @@ class StooqClient(
                 high = BigDecimal(parts[4]),
                 low = BigDecimal(parts[5]),
                 close = BigDecimal(parts[6]),
-                volume = parts[7].toLong()
+                volume = parts[7].toLong(),
             )
         } catch (e: Exception) {
             logger.error("[STOOQ] CSV 파싱 실패: {}", dataLine, e)

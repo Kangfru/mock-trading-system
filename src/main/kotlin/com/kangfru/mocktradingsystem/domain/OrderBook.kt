@@ -10,7 +10,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 data class PriceLevel(
     val price: BigDecimal,
     val quantity: Int,
-    val orderCount: Int
+    val orderCount: Int,
 )
 
 /**
@@ -18,11 +18,11 @@ data class PriceLevel(
  */
 data class OrderBookSnapshot(
     val stockCode: String,
-    val askLevels: List<PriceLevel>,  // 매도 호가 (낮은 가격순)
-    val bidLevels: List<PriceLevel>,  // 매수 호가 (높은 가격순)
-    val bestAsk: BigDecimal?,         // 최우선 매도호가
-    val bestBid: BigDecimal?,         // 최우선 매수호가
-    val spread: BigDecimal?           // 스프레드
+    val askLevels: List<PriceLevel>, // 매도 호가 (낮은 가격순)
+    val bidLevels: List<PriceLevel>, // 매수 호가 (높은 가격순)
+    val bestAsk: BigDecimal?, // 최우선 매도호가
+    val bestBid: BigDecimal?, // 최우선 매수호가
+    val spread: BigDecimal?, // 스프레드
 )
 
 /**
@@ -34,7 +34,7 @@ data class BookOrder(
     val price: BigDecimal,
     val remainingQuantity: Int,
     val originalQuantity: Int,
-    val orderTime: java.time.LocalDateTime
+    val orderTime: java.time.LocalDateTime,
 )
 
 /**
@@ -42,7 +42,9 @@ data class BookOrder(
  * - 매도 호가: 가격 오름차순 (낮은 가격이 최우선)
  * - 매수 호가: 가격 내림차순 (높은 가격이 최우선)
  */
-class OrderBook(val stockCode: String) {
+class OrderBook(
+    val stockCode: String,
+) {
     // 매도 호가: 가격 오름차순 (TreeMap 기본 정렬)
     private val askOrders = ConcurrentSkipListMap<BigDecimal, CopyOnWriteArrayList<BookOrder>>()
 
@@ -153,21 +155,23 @@ class OrderBook(val stockCode: String) {
      * 호가창 스냅샷 생성 (5호가)
      */
     fun getSnapshot(levels: Int = 5): OrderBookSnapshot {
-        val askLevels = askOrders.entries.take(levels).map { (price, orders) ->
-            PriceLevel(
-                price = price,
-                quantity = orders.sumOf { it.remainingQuantity },
-                orderCount = orders.size
-            )
-        }
+        val askLevels =
+            askOrders.entries.take(levels).map { (price, orders) ->
+                PriceLevel(
+                    price = price,
+                    quantity = orders.sumOf { it.remainingQuantity },
+                    orderCount = orders.size,
+                )
+            }
 
-        val bidLevels = bidOrders.entries.take(levels).map { (price, orders) ->
-            PriceLevel(
-                price = price,
-                quantity = orders.sumOf { it.remainingQuantity },
-                orderCount = orders.size
-            )
-        }
+        val bidLevels =
+            bidOrders.entries.take(levels).map { (price, orders) ->
+                PriceLevel(
+                    price = price,
+                    quantity = orders.sumOf { it.remainingQuantity },
+                    orderCount = orders.size,
+                )
+            }
 
         val bestAsk = getBestAskPrice()
         val bestBid = getBestBidPrice()
@@ -179,7 +183,7 @@ class OrderBook(val stockCode: String) {
             bidLevels = bidLevels,
             bestAsk = bestAsk,
             bestBid = bestBid,
-            spread = spread
+            spread = spread,
         )
     }
 }

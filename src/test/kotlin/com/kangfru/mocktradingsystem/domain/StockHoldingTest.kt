@@ -7,7 +7,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class StockHoldingTest {
-
     @Test
     fun `should calculate total value correctly`() {
         val holding = StockHolding("AAPL", 10, BigDecimal("150.00"))

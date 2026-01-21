@@ -6,7 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class UserTest {
-
     @Test
     fun `should create user successfully`() {
         val user = User(1L, "testuser", "test@example.com")

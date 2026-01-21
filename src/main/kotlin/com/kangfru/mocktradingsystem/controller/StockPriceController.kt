@@ -12,13 +12,12 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/stocks")
 class StockPriceController(
-    private val stooqClient: StooqClient
+    private val stooqClient: StooqClient,
 ) {
-
     @GetMapping("/{symbol}/quote")
     fun getQuote(
         @PathVariable symbol: String,
-        @RequestParam(defaultValue = "us") market: String
+        @RequestParam(defaultValue = "us") market: String,
     ): ResponseEntity<StockQuote> {
         val quote = stooqClient.getQuote(symbol, market)
         return if (quote != null) {

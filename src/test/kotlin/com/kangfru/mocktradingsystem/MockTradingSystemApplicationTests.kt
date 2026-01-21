@@ -8,9 +8,7 @@ import org.springframework.context.annotation.Import
 @SpringBootTest
 @Import(TestConfig::class)
 class MockTradingSystemApplicationTests {
-
     @Test
     fun contextLoads() {
     }
-
 }

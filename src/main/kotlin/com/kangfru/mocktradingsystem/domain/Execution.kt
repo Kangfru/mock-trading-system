@@ -11,5 +11,5 @@ data class Execution(
     val orderType: OrderType,
     val executedQuantity: Int,
     val executedPrice: BigDecimal,
-    val executionTime: LocalDateTime = LocalDateTime.now()
+    val executionTime: LocalDateTime = LocalDateTime.now(),
 )

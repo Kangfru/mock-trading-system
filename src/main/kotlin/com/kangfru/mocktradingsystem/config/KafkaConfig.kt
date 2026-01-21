@@ -18,7 +18,6 @@ import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 @Configuration
 @EnableKafka
 class KafkaConfig {
-
     @Value("\${spring.kafka.bootstrap-servers}")
     private lateinit var bootstrapServers: String
 
@@ -56,42 +55,42 @@ class KafkaConfig {
 
     @Bean
     fun producerFactory(): ProducerFactory<String, Order> {
-        val configProps = mapOf(
-            ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java,
-            // 튜닝 설정
-            ProducerConfig.BATCH_SIZE_CONFIG to batchSize,
-            ProducerConfig.LINGER_MS_CONFIG to lingerMs,
-            ProducerConfig.BUFFER_MEMORY_CONFIG to bufferMemory,
-            ProducerConfig.COMPRESSION_TYPE_CONFIG to compressionType,
-            ProducerConfig.ACKS_CONFIG to acks
-        )
+        val configProps =
+            mapOf(
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
+                ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java,
+                // 튜닝 설정
+                ProducerConfig.BATCH_SIZE_CONFIG to batchSize,
+                ProducerConfig.LINGER_MS_CONFIG to lingerMs,
+                ProducerConfig.BUFFER_MEMORY_CONFIG to bufferMemory,
+                ProducerConfig.COMPRESSION_TYPE_CONFIG to compressionType,
+                ProducerConfig.ACKS_CONFIG to acks,
+            )
         return DefaultKafkaProducerFactory(configProps)
     }
 
     @Bean
-    fun kafkaTemplate(): KafkaTemplate<String, Order> {
-        return KafkaTemplate(producerFactory())
-    }
+    fun kafkaTemplate(): KafkaTemplate<String, Order> = KafkaTemplate(producerFactory())
 
     @Bean
     fun consumerFactory(): ConsumerFactory<String, Order> {
-        val configProps = mapOf(
-            ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
-            ConsumerConfig.GROUP_ID_CONFIG to groupId,
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
-            JacksonJsonDeserializer.TRUSTED_PACKAGES to "com.kangfru.mocktradingsystem.domain",
-            // 튜닝 설정
-            ConsumerConfig.FETCH_MIN_BYTES_CONFIG to fetchMinBytes,
-            ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG to fetchMaxWaitMs,
-            ConsumerConfig.MAX_POLL_RECORDS_CONFIG to maxPollRecords
-        )
+        val configProps =
+            mapOf(
+                ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
+                ConsumerConfig.GROUP_ID_CONFIG to groupId,
+                ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
+                JacksonJsonDeserializer.TRUSTED_PACKAGES to "com.kangfru.mocktradingsystem.domain",
+                // 튜닝 설정
+                ConsumerConfig.FETCH_MIN_BYTES_CONFIG to fetchMinBytes,
+                ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG to fetchMaxWaitMs,
+                ConsumerConfig.MAX_POLL_RECORDS_CONFIG to maxPollRecords,
+            )
         return DefaultKafkaConsumerFactory(
             configProps,
             StringDeserializer(),
-            JacksonJsonDeserializer(Order::class.java)
+            JacksonJsonDeserializer(Order::class.java),
         )
     }
 
@@ -99,8 +98,8 @@ class KafkaConfig {
     fun kafkaListenerContainerFactory(): ConcurrentKafkaListenerContainerFactory<String, Order> {
         val factory = ConcurrentKafkaListenerContainerFactory<String, Order>()
         factory.setConsumerFactory(consumerFactory())
-        factory.setConcurrency(concurrency)  // 병렬 Consumer 수
-        factory.containerProperties.ackMode = ContainerProperties.AckMode.BATCH  // 배치 ACK
+        factory.setConcurrency(concurrency) // 병렬 Consumer 수
+        factory.containerProperties.ackMode = ContainerProperties.AckMode.BATCH // 배치 ACK
         return factory
     }
 }

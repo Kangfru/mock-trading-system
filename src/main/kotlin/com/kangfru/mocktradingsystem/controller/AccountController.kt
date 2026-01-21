@@ -1,7 +1,6 @@
 package com.kangfru.mocktradingsystem.controller
 
 import com.kangfru.mocktradingsystem.domain.Account
-import com.kangfru.mocktradingsystem.domain.StockHolding
 import com.kangfru.mocktradingsystem.service.AccountService
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
@@ -12,28 +11,31 @@ import java.math.BigDecimal
 class AccountController(
     private val accountService: AccountService,
 ) {
-
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    suspend fun createAccount(@RequestBody request: CreateAccountRequest): AccountResponse {
+    suspend fun createAccount(
+        @RequestBody request: CreateAccountRequest,
+    ): AccountResponse {
         val account = accountService.createAccount(request.userId, request.initialBalance ?: BigDecimal.ZERO)
         return account.toResponse()
     }
 
     @GetMapping("/{accountNumber}")
-    suspend fun getAccount(@PathVariable accountNumber: String): AccountResponse {
+    suspend fun getAccount(
+        @PathVariable accountNumber: String,
+    ): AccountResponse {
         val account = accountService.getAccount(accountNumber)
         return account.toResponse()
     }
 
     @GetMapping
-    suspend fun getAllAccounts(): List<AccountResponse> {
-        return accountService.getAllAccounts().map { it.toResponse() }
-    }
+    suspend fun getAllAccounts(): List<AccountResponse> = accountService.getAllAccounts().map { it.toResponse() }
 
     @DeleteMapping("/{accountNumber}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    suspend fun deleteAccount(@PathVariable accountNumber: String) {
+    suspend fun deleteAccount(
+        @PathVariable accountNumber: String,
+    ) {
         accountService.deleteAccount(accountNumber)
     }
 
@@ -60,12 +62,13 @@ class AccountController(
         @PathVariable accountNumber: String,
         @RequestBody request: BuyStockRequest,
     ): AccountResponse {
-        val account = accountService.buyStock(
-            accountNumber,
-            request.stockCode,
-            request.quantity,
-            request.price,
-        )
+        val account =
+            accountService.buyStock(
+                accountNumber,
+                request.stockCode,
+                request.quantity,
+                request.price,
+            )
         return account.toResponse()
     }
 
@@ -74,17 +77,20 @@ class AccountController(
         @PathVariable accountNumber: String,
         @RequestBody request: SellStockRequest,
     ): AccountResponse {
-        val account = accountService.sellStock(
-            accountNumber,
-            request.stockCode,
-            request.quantity,
-            request.price,
-        )
+        val account =
+            accountService.sellStock(
+                accountNumber,
+                request.stockCode,
+                request.quantity,
+                request.price,
+            )
         return account.toResponse()
     }
 
     @GetMapping("/{accountNumber}/holdings")
-    suspend fun getHoldings(@PathVariable accountNumber: String): Map<String, HoldingResponse> {
+    suspend fun getHoldings(
+        @PathVariable accountNumber: String,
+    ): Map<String, HoldingResponse> {
         val holdings = accountService.getHoldings(accountNumber)
         return holdings.mapValues { (_, holding) ->
             HoldingResponse(
@@ -112,47 +118,49 @@ class AccountController(
         }
     }
 
-    private fun Account.toResponse() = AccountResponse(
-        accountNumber = accountNumber,
-        userId = userId,
-        balance = balance,
-        holdings = holdings.mapValues { (_, holding) ->
-            HoldingResponse(
-                stockCode = holding.stockCode,
-                quantity = holding.quantity,
-                averagePrice = holding.averagePrice,
-                totalValue = holding.totalValue,
-            )
-        },
-        totalAssets = totalAssets,
-        createdAt = createdAt,
-        updatedAt = updatedAt,
-    )
+    private fun Account.toResponse() =
+        AccountResponse(
+            accountNumber = accountNumber,
+            userId = userId,
+            balance = balance,
+            holdings =
+                holdings.mapValues { (_, holding) ->
+                    HoldingResponse(
+                        stockCode = holding.stockCode,
+                        quantity = holding.quantity,
+                        averagePrice = holding.averagePrice,
+                        totalValue = holding.totalValue,
+                    )
+                },
+            totalAssets = totalAssets,
+            createdAt = createdAt,
+            updatedAt = updatedAt,
+        )
 }
 
 data class CreateAccountRequest(
     val userId: Long,
-    val initialBalance: BigDecimal? = null
+    val initialBalance: BigDecimal? = null,
 )
 
 data class DepositRequest(
-    val amount: BigDecimal
+    val amount: BigDecimal,
 )
 
 data class WithdrawRequest(
-    val amount: BigDecimal
+    val amount: BigDecimal,
 )
 
 data class BuyStockRequest(
     val stockCode: String,
     val quantity: Int,
-    val price: BigDecimal
+    val price: BigDecimal,
 )
 
 data class SellStockRequest(
     val stockCode: String,
     val quantity: Int,
-    val price: BigDecimal
+    val price: BigDecimal,
 )
 
 data class AccountResponse(
@@ -162,12 +170,12 @@ data class AccountResponse(
     val holdings: Map<String, HoldingResponse>,
     val totalAssets: BigDecimal,
     val createdAt: java.time.LocalDateTime,
-    val updatedAt: java.time.LocalDateTime
+    val updatedAt: java.time.LocalDateTime,
 )
 
 data class HoldingResponse(
     val stockCode: String,
     val quantity: Int,
     val averagePrice: BigDecimal,
-    val totalValue: BigDecimal
+    val totalValue: BigDecimal,
 )

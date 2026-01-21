@@ -12,5 +12,5 @@ data class StockQuote(
     val high: BigDecimal,
     val low: BigDecimal,
     val close: BigDecimal,
-    val volume: Long
+    val volume: Long,
 )

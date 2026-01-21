@@ -10,18 +10,22 @@ import reactor.netty.http.client.HttpClient
 
 @Configuration
 class WebClientConfig {
-
     @Bean
     fun webClient(): WebClient {
         // 개발용: SSL 검증 비활성화
-        val sslContext = SslContextBuilder.forClient()
-            .trustManager(InsecureTrustManagerFactory.INSTANCE)
-            .build()
+        val sslContext =
+            SslContextBuilder
+                .forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build()
 
-        val httpClient = HttpClient.create()
-            .secure { it.sslContext(sslContext) }
+        val httpClient =
+            HttpClient
+                .create()
+                .secure { it.sslContext(sslContext) }
 
-        return WebClient.builder()
+        return WebClient
+            .builder()
             .baseUrl("https://stooq.com")
             .clientConnector(ReactorClientHttpConnector(httpClient))
             .build()

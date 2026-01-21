@@ -9,18 +9,19 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AccountTest {
-
     @Test
     fun `should calculate total assets correctly`() {
-        val holdings = mapOf(
-            "AAPL" to StockHolding("AAPL", 10, BigDecimal("100.00")),
-            "GOOGL" to StockHolding("GOOGL", 5, BigDecimal("200.00"))
-        )
+        val holdings =
+            mapOf(
+                "AAPL" to StockHolding("AAPL", 10, BigDecimal("100.00")),
+                "GOOGL" to StockHolding("GOOGL", 5, BigDecimal("200.00")),
+            )
         val account = Account("ACC-001", 1L, BigDecimal("500.00"), holdings)
 
-        val expected = BigDecimal("500.00")
-            .add(BigDecimal("1000.00"))
-            .add(BigDecimal("1000.00"))
+        val expected =
+            BigDecimal("500.00")
+                .add(BigDecimal("1000.00"))
+                .add(BigDecimal("1000.00"))
         assertEquals(expected, account.totalAssets)
     }
 

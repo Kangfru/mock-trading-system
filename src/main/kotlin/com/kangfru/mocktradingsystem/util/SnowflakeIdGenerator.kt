@@ -7,7 +7,7 @@ import kotlin.concurrent.withLock
 
 @Component
 class SnowflakeIdGenerator(
-    @Value("\${app.snowflake.node-id:1}") private val nodeId: Long
+    @Value("\${app.snowflake.node-id:1}") private val nodeId: Long,
 ) {
     companion object {
         private const val EPOCH = 1704067200000L // 2024-01-01 00:00:00 UTC
@@ -29,28 +29,29 @@ class SnowflakeIdGenerator(
         require(nodeId in 0..MAX_NODE_ID) { "Node ID must be between 0 and $MAX_NODE_ID" }
     }
 
-    fun nextId(): Long = lock.withLock {
-        var timestamp = currentTimeMillis()
+    fun nextId(): Long =
+        lock.withLock {
+            var timestamp = currentTimeMillis()
 
-        if (timestamp < lastTimestamp) {
-            throw IllegalStateException("Clock moved backwards. Refusing to generate id.")
-        }
-
-        if (timestamp == lastTimestamp) {
-            sequence = (sequence + 1) and MAX_SEQUENCE
-            if (sequence == 0L) {
-                timestamp = waitNextMillis(lastTimestamp)
+            if (timestamp < lastTimestamp) {
+                throw IllegalStateException("Clock moved backwards. Refusing to generate id.")
             }
-        } else {
-            sequence = 0L
-        }
 
-        lastTimestamp = timestamp
+            if (timestamp == lastTimestamp) {
+                sequence = (sequence + 1) and MAX_SEQUENCE
+                if (sequence == 0L) {
+                    timestamp = waitNextMillis(lastTimestamp)
+                }
+            } else {
+                sequence = 0L
+            }
 
-        ((timestamp - EPOCH) shl TIMESTAMP_SHIFT) or
+            lastTimestamp = timestamp
+
+            ((timestamp - EPOCH) shl TIMESTAMP_SHIFT) or
                 (nodeId shl NODE_ID_SHIFT) or
                 sequence
-    }
+        }
 
     private fun currentTimeMillis(): Long = System.currentTimeMillis()
 
@@ -72,6 +73,6 @@ class SnowflakeIdGenerator(
     data class SnowflakeInfo(
         val timestamp: Long,
         val nodeId: Long,
-        val sequence: Long
+        val sequence: Long,
     )
 }

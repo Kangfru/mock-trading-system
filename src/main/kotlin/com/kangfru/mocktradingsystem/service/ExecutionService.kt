@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Service
 class ExecutionService(
     private val snowflakeIdGenerator: SnowflakeIdGenerator,
-    private val orderBookService: OrderBookService
+    private val orderBookService: OrderBookService,
 ) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
@@ -29,19 +29,21 @@ class ExecutionService(
         orderStore[order.orderNumber] = order
 
         // OrderBook을 통한 매칭
-        val result = when (order.orderType) {
-            OrderType.BUY -> orderBookService.processBuyOrder(order)
-            OrderType.SELL -> orderBookService.processSellOrder(order)
-        }
+        val result =
+            when (order.orderType) {
+                OrderType.BUY -> orderBookService.processBuyOrder(order)
+                OrderType.SELL -> orderBookService.processSellOrder(order)
+            }
 
         // 주문 상태 업데이트
-        val newStatus = if (result.remainingQuantity == 0) {
-            OrderStatus.FILLED
-        } else if (result.executions.isEmpty()) {
-            OrderStatus.PENDING
-        } else {
-            OrderStatus.PENDING  // 부분 체결
-        }
+        val newStatus =
+            if (result.remainingQuantity == 0) {
+                OrderStatus.FILLED
+            } else if (result.executions.isEmpty()) {
+                OrderStatus.PENDING
+            } else {
+                OrderStatus.PENDING // 부분 체결
+            }
         orderStore[order.orderNumber] = order.copy(status = newStatus)
 
         if (result.executions.isNotEmpty()) {
@@ -49,17 +51,18 @@ class ExecutionService(
                 "[NEW] {}건 체결, 잔량 {}주 | orderNumber: {}",
                 result.executions.size,
                 result.remainingQuantity,
-                order.orderNumber
+                order.orderNumber,
             )
         }
     }
 
     private fun executeCancelOrder(order: Order) {
-        val originalOrderNumber = order.originalOrderNumber
-            ?: run {
-                logger.warn("[CANCEL] 원주문 번호 없음: {}", order.orderNumber)
-                return
-            }
+        val originalOrderNumber =
+            order.originalOrderNumber
+                ?: run {
+                    logger.warn("[CANCEL] 원주문 번호 없음: {}", order.orderNumber)
+                    return
+                }
 
         val originalOrder = orderStore[originalOrderNumber]
         if (originalOrder == null) {
@@ -81,16 +84,17 @@ class ExecutionService(
         logger.info(
             "[CANCEL] 취소 완료: originalOrderNumber={} | cancelOrderNumber={}",
             originalOrderNumber,
-            order.orderNumber
+            order.orderNumber,
         )
     }
 
     private fun executeModifyOrder(order: Order) {
-        val originalOrderNumber = order.originalOrderNumber
-            ?: run {
-                logger.warn("[MODIFY] 원주문 번호 없음: {}", order.orderNumber)
-                return
-            }
+        val originalOrderNumber =
+            order.originalOrderNumber
+                ?: run {
+                    logger.warn("[MODIFY] 원주문 번호 없음: {}", order.orderNumber)
+                    return
+                }
 
         val originalOrder = orderStore[originalOrderNumber]
         if (originalOrder == null) {
@@ -114,18 +118,20 @@ class ExecutionService(
         val newPrice = if (order.price > java.math.BigDecimal.ZERO) order.price else originalOrder.price
 
         // 새로운 주문으로 매칭 시도
-        val modifiedOrder = originalOrder.copy(
-            orderNumber = order.orderNumber,
-            quantity = newQuantity,
-            price = newPrice,
-            action = OrderAction.NEW
-        )
+        val modifiedOrder =
+            originalOrder.copy(
+                orderNumber = order.orderNumber,
+                quantity = newQuantity,
+                price = newPrice,
+                action = OrderAction.NEW,
+            )
         orderStore[order.orderNumber] = modifiedOrder
 
-        val result = when (modifiedOrder.orderType) {
-            OrderType.BUY -> orderBookService.processBuyOrder(modifiedOrder)
-            OrderType.SELL -> orderBookService.processSellOrder(modifiedOrder)
-        }
+        val result =
+            when (modifiedOrder.orderType) {
+                OrderType.BUY -> orderBookService.processBuyOrder(modifiedOrder)
+                OrderType.SELL -> orderBookService.processSellOrder(modifiedOrder)
+            }
 
         // 주문 상태 업데이트
         val newStatus = if (result.remainingQuantity == 0) OrderStatus.FILLED else OrderStatus.PENDING
@@ -136,7 +142,7 @@ class ExecutionService(
             originalOrderNumber,
             order.orderNumber,
             result.executions.size,
-            result.remainingQuantity
+            result.remainingQuantity,
         )
     }
 
@@ -158,7 +164,7 @@ class ExecutionService(
             "filledOrders" to orders.count { it.status == OrderStatus.FILLED },
             "cancelledOrders" to orders.count { it.status == OrderStatus.CANCELLED },
             "modifiedOrders" to orders.count { it.status == OrderStatus.MODIFIED },
-            "totalExecutions" to orderBookService.getExecutionCount()
+            "totalExecutions" to orderBookService.getExecutionCount(),
         )
     }
 }
