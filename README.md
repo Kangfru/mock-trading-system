@@ -139,4 +139,4 @@ src/main/kotlin/com/kangfru/mocktradingsystem/
 - [X] 사용자/계좌 시스템
 - [X] 포트폴리오 관리 (보유 종목, 잔고)
 - [X] 매도 시 보유 수량 검증
-- [ ~~~~] Kotlin Multiplatform Compose로 간단한 HTS 앱 개발
+- [ ] Kotlin Multiplatform Compose로 간단한 HTS 앱 개발
