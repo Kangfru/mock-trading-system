@@ -12,8 +12,8 @@ import org.springframework.kafka.annotation.EnableKafka
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory
 import org.springframework.kafka.core.*
 import org.springframework.kafka.listener.ContainerProperties
-import org.springframework.kafka.support.serializer.JsonDeserializer
-import org.springframework.kafka.support.serializer.JsonSerializer
+import org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+import org.springframework.kafka.support.serializer.JacksonJsonSerializer
 
 @Configuration
 @EnableKafka
@@ -59,7 +59,7 @@ class KafkaConfig {
         val configProps = mapOf(
             ProducerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to StringSerializer::class.java,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JsonSerializer::class.java,
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to JacksonJsonSerializer::class.java,
             // 튜닝 설정
             ProducerConfig.BATCH_SIZE_CONFIG to batchSize,
             ProducerConfig.LINGER_MS_CONFIG to lingerMs,
@@ -81,8 +81,8 @@ class KafkaConfig {
             ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG to bootstrapServers,
             ConsumerConfig.GROUP_ID_CONFIG to groupId,
             ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to StringDeserializer::class.java,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JsonDeserializer::class.java,
-            JsonDeserializer.TRUSTED_PACKAGES to "com.kangfru.mocktradingsystem.domain",
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to JacksonJsonDeserializer::class.java,
+            JacksonJsonDeserializer.TRUSTED_PACKAGES to "com.kangfru.mocktradingsystem.domain",
             // 튜닝 설정
             ConsumerConfig.FETCH_MIN_BYTES_CONFIG to fetchMinBytes,
             ConsumerConfig.FETCH_MAX_WAIT_MS_CONFIG to fetchMaxWaitMs,
@@ -91,7 +91,7 @@ class KafkaConfig {
         return DefaultKafkaConsumerFactory(
             configProps,
             StringDeserializer(),
-            JsonDeserializer(Order::class.java)
+            JacksonJsonDeserializer(Order::class.java)
         )
     }
 
