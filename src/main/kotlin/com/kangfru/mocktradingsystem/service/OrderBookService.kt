@@ -12,11 +12,21 @@ import org.springframework.stereotype.Service
 import java.util.concurrent.ConcurrentHashMap
 
 /**
+ * 매칭된 상대방 주문 정보
+ */
+data class MatchedOrder(
+    val orderNumber: Long,
+    val matchedQuantity: Int,
+    val remainingQuantity: Int,
+)
+
+/**
  * 체결 결과
  */
 data class MatchResult(
     val executions: List<Execution>,
     val remainingQuantity: Int,
+    val matchedOrders: List<MatchedOrder> = emptyList(),
 )
 
 @Service
@@ -54,6 +64,7 @@ class OrderBookService(
     fun processBuyOrder(order: Order): MatchResult {
         val orderBook = getOrderBook(order.stockCode)
         val executions = mutableListOf<Execution>()
+        val matchedOrders = mutableListOf<MatchedOrder>()
         var remainingQty = order.quantity
 
         // 매도 호가와 매칭 시도 (가격 조건: 매수가 >= 매도가)
@@ -99,6 +110,15 @@ class OrderBookService(
             if (askRemaining > 0) {
                 orderBook.addAskOrder(askOrder.copy(remainingQuantity = askRemaining))
             }
+
+            // 매칭된 상대방 주문 정보 기록
+            matchedOrders.add(
+                MatchedOrder(
+                    orderNumber = askOrder.orderNumber,
+                    matchedQuantity = matchQty,
+                    remainingQuantity = askRemaining,
+                )
+            )
         }
 
         // 미체결 수량이 있으면 호가창에 추가
@@ -122,7 +142,7 @@ class OrderBookService(
             )
         }
 
-        return MatchResult(executions, remainingQty)
+        return MatchResult(executions, remainingQty, matchedOrders)
     }
 
     /**
@@ -133,6 +153,7 @@ class OrderBookService(
     fun processSellOrder(order: Order): MatchResult {
         val orderBook = getOrderBook(order.stockCode)
         val executions = mutableListOf<Execution>()
+        val matchedOrders = mutableListOf<MatchedOrder>()
         var remainingQty = order.quantity
 
         // 매수 호가와 매칭 시도 (가격 조건: 매도가 <= 매수가)
@@ -178,6 +199,15 @@ class OrderBookService(
             if (bidRemaining > 0) {
                 orderBook.addBidOrder(bidOrder.copy(remainingQuantity = bidRemaining))
             }
+
+            // 매칭된 상대방 주문 정보 기록
+            matchedOrders.add(
+                MatchedOrder(
+                    orderNumber = bidOrder.orderNumber,
+                    matchedQuantity = matchQty,
+                    remainingQuantity = bidRemaining,
+                )
+            )
         }
 
         // 미체결 수량이 있으면 호가창에 추가
@@ -201,7 +231,7 @@ class OrderBookService(
             )
         }
 
-        return MatchResult(executions, remainingQty)
+        return MatchResult(executions, remainingQty, matchedOrders)
     }
 
     /**

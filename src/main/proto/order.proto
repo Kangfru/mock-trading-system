@@ -58,6 +58,15 @@ message GetOrderResponse {
   Order order = 1;
 }
 
+message WatchOrderStatusRequest {
+  int64 order_number = 1;
+}
+
+message OrderStatusUpdate {
+  OrderStatus order_status = 1;
+}
+
 service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+  rpc WatchOrderStatus(WatchOrderStatusRequest) returns (stream OrderStatusUpdate);
 }

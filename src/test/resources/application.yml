@@ -25,3 +25,7 @@ app:
       concurrency: 3
   snowflake:
     node-id: 1
+
+grpc:
+  server:
+    port: 9090

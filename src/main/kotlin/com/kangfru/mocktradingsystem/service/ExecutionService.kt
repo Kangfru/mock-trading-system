@@ -46,6 +46,24 @@ class ExecutionService(
             }
         orderStore[order.orderNumber] = order.copy(status = newStatus)
 
+        // 매칭된 상대방 주문 상태 업데이트
+        for (matchedOrder in result.matchedOrders) {
+            val counterOrder = orderStore[matchedOrder.orderNumber]
+            if (counterOrder != null) {
+                val counterStatus = if (matchedOrder.remainingQuantity == 0) {
+                    OrderStatus.FILLED
+                } else {
+                    OrderStatus.PENDING // 부분 체결
+                }
+                orderStore[matchedOrder.orderNumber] = counterOrder.copy(status = counterStatus)
+                logger.info(
+                    "[COUNTER] 상대 주문 상태 업데이트: orderNumber={}, status={}",
+                    matchedOrder.orderNumber,
+                    counterStatus,
+                )
+            }
+        }
+
         if (result.executions.isNotEmpty()) {
             logger.info(
                 "[NEW] {}건 체결, 잔량 {}주 | orderNumber: {}",
@@ -136,6 +154,24 @@ class ExecutionService(
         // 주문 상태 업데이트
         val newStatus = if (result.remainingQuantity == 0) OrderStatus.FILLED else OrderStatus.PENDING
         orderStore[order.orderNumber] = modifiedOrder.copy(status = newStatus)
+
+        // 매칭된 상대방 주문 상태 업데이트
+        for (matchedOrder in result.matchedOrders) {
+            val counterOrder = orderStore[matchedOrder.orderNumber]
+            if (counterOrder != null) {
+                val counterStatus = if (matchedOrder.remainingQuantity == 0) {
+                    OrderStatus.FILLED
+                } else {
+                    OrderStatus.PENDING
+                }
+                orderStore[matchedOrder.orderNumber] = counterOrder.copy(status = counterStatus)
+                logger.info(
+                    "[COUNTER] 상대 주문 상태 업데이트: orderNumber={}, status={}",
+                    matchedOrder.orderNumber,
+                    counterStatus,
+                )
+            }
+        }
 
         logger.info(
             "[MODIFY] 정정 완료: originalOrderNumber={} → modifyOrderNumber={}, {}건 체결, 잔량 {}주",

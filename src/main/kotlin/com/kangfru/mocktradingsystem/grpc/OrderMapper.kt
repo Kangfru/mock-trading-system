@@ -84,4 +84,10 @@ fun Order.toDomain(): DomainOrder =
         originalOrderNumber = if (this.hasOriginalOrderNumber()) this.originalOrderNumber else null
     )
 
-
+fun DomainOrderStatus.toProto(): OrderStatus =
+    when (this) {
+        DomainOrderStatus.PENDING -> OrderStatus.ORDER_STATUS_PENDING
+        DomainOrderStatus.FILLED -> OrderStatus.ORDER_STATUS_FILLED
+        DomainOrderStatus.CANCELLED -> OrderStatus.ORDER_STATUS_CANCELLED
+        DomainOrderStatus.MODIFIED -> OrderStatus.ORDER_STATUS_MODIFIED
+    }
