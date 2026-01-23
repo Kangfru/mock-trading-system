@@ -6,7 +6,9 @@ import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
@@ -67,4 +69,27 @@ class GrpcOrderService(
             failCount = ng
         }
     }
+
+    override fun manageOrders(requests: Flow<OrderManagementRequest>): Flow<OrderManagementResponse> =
+        channelFlow {
+            launch {
+                requests.collect { request ->
+                    try {
+                        executionService.processOrder(request.order.toDomain())
+                        send(orderManagementResponse {
+                            clientRequestId = request.clientRequestId
+                            order = request.order
+                            success = true
+                        })
+                    } catch (e: Exception) {
+                        send(orderManagementResponse {
+                            clientRequestId = request.clientRequestId
+                            order = request.order
+                            success = false
+                            errorMessage = e.message ?: ""
+                        })
+                    }
+                }
+            }
+        }
 }

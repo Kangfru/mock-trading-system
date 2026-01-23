@@ -79,8 +79,21 @@ message OrderResponse {
   int32 fail_count = 2;
 }
 
+message OrderManagementRequest {
+  Order order = 1;
+  int64 client_request_id = 2;
+}
+
+message OrderManagementResponse {
+  int64 client_request_id = 1;
+  bool success = 2;
+  string error_message = 3;
+  Order order = 4;
+}
+
 service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
   rpc WatchOrderStatus(WatchOrderStatusRequest) returns (stream OrderStatusUpdate);
   rpc CreateBulkOrder(stream OrderRequest) returns (OrderResponse);
+  rpc ManageOrders(stream OrderManagementRequest) returns (stream OrderManagementResponse);
 }

@@ -31,9 +31,11 @@ Kotlin + Spring Boot 기반의 모의 주식 거래 시스템
 - 입출금 처리
 - 주식 보유 현황 관리
 
-### gRPC API
-- 주문 조회 (Unary)
-- 주문 상태 실시간 스트리밍 (Server Streaming)
+### gRPC API (4가지 통신 패턴)
+- **Unary**: 주문 조회 (`GetOrder`)
+- **Server Streaming**: 주문 상태 실시간 모니터링 (`WatchOrderStatus`)
+- **Client Streaming**: 대량 주문 일괄 처리 (`CreateBulkOrder`)
+- **Bidirectional Streaming**: 실시간 주문 관리 세션 (`ManageOrders`)
 - Reflection 지원 (grpcurl 사용 가능)
 
 ### 시세 조회
@@ -147,17 +149,36 @@ GET /api/accounts/{accountNumber}/holdings/{stockCode}
 ```
 
 ### gRPC (localhost:9090)
+
+#### Unary - 단일 주문 조회
 ```bash
-# 주문 조회
 grpcurl -plaintext -d '{"order_number": 123456789}' \
   localhost:9090 order.OrderService/GetOrder
+```
 
-# 주문 상태 스트리밍
+#### Server Streaming - 주문 상태 실시간 모니터링
+```bash
+# 주문이 FILLED 또는 CANCELLED 될 때까지 상태 업데이트 수신
 grpcurl -plaintext -d '{"order_number": 123456789}' \
   localhost:9090 order.OrderService/WatchOrderStatus
+```
 
-# 서비스 목록 조회
+#### Client Streaming - 대량 주문 일괄 처리
+```bash
+# 여러 주문을 스트림으로 전송, 마지막에 성공/실패 카운트 수신
+# (grpcurl은 client streaming을 직접 지원하지 않음 - 프로그래밍 방식 사용)
+```
+
+#### Bidirectional Streaming - 실시간 주문 관리
+```bash
+# 주문 전송과 동시에 처리 결과를 실시간으로 수신
+# (grpcurl은 bidirectional streaming을 직접 지원하지 않음 - 프로그래밍 방식 사용)
+```
+
+#### 서비스 조회
+```bash
 grpcurl -plaintext localhost:9090 list
+grpcurl -plaintext localhost:9090 describe order.OrderService
 ```
 
 ## Quick Start
@@ -280,8 +301,77 @@ src/main/proto/
 └─────────────────────────────────┘
 ```
 
+## gRPC 통신 패턴
+
+이 프로젝트는 gRPC의 4가지 통신 패턴을 모두 구현하여 학습 목적으로 활용할 수 있습니다.
+
+### 1. Unary RPC
+```
+Client ──Request──▶ Server
+Client ◀──Response── Server
+```
+- **메서드**: `GetOrder`
+- **특징**: 단일 요청, 단일 응답 (REST API와 유사)
+- **사용 사례**: 주문 조회
+
+### 2. Server Streaming RPC
+```
+Client ──Request──▶ Server
+Client ◀──Response── Server
+Client ◀──Response── Server
+Client ◀──Response── Server
+```
+- **메서드**: `WatchOrderStatus`
+- **특징**: 단일 요청, 다중 응답 스트림
+- **사용 사례**: 주문 상태 변경 실시간 모니터링
+- **구현**: `Flow<T>`를 반환하여 지속적인 데이터 전송
+
+### 3. Client Streaming RPC
+```
+Client ──Request──▶ Server
+Client ──Request──▶ Server
+Client ──Request──▶ Server
+Client ◀──Response── Server
+```
+- **메서드**: `CreateBulkOrder`
+- **특징**: 다중 요청 스트림, 단일 응답
+- **사용 사례**: 대량 주문 일괄 제출
+- **구현**: `Flow<T>`를 파라미터로 받아 `collect`로 처리
+
+### 4. Bidirectional Streaming RPC
+```
+Client ──Request──▶ Server
+Client ◀──Response── Server
+Client ──Request──▶ Server
+Client ──Request──▶ Server
+Client ◀──Response── Server
+Client ◀──Response── Server
+```
+- **메서드**: `ManageOrders`
+- **특징**: 양방향 동시 스트림 (실시간 양방향 통신)
+- **사용 사례**: 실시간 주문 제출 + 즉각적인 처리 결과 수신
+- **구현**: `channelFlow` + `launch`로 동시성 처리
+
+### Proto 정의 요약
+```protobuf
+service OrderService {
+  // Unary
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+
+  // Server Streaming
+  rpc WatchOrderStatus(WatchOrderStatusRequest) returns (stream OrderStatusUpdate);
+
+  // Client Streaming
+  rpc CreateBulkOrder(stream OrderRequest) returns (OrderResponse);
+
+  // Bidirectional Streaming
+  rpc ManageOrders(stream OrderManagementRequest) returns (stream OrderManagementResponse);
+}
+```
+
 ## Notes
 
 - **Eventual Consistency**: REST API로 주문 제출 후 gRPC로 조회 시, Kafka 처리 지연으로 인해 즉시 조회되지 않을 수 있음
 - **Snowflake ID**: 분산 환경에서 고유한 주문번호 생성
 - **Coroutines**: 사용자/계좌 서비스는 Kotlin Coroutines 기반 비동기 처리
+- **gRPC Streaming**: Kotlin Flow와 Coroutines를 활용한 비동기 스트리밍 구현

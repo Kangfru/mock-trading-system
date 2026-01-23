@@ -7,6 +7,7 @@ import io.grpc.Status
 import io.grpc.StatusException
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -143,6 +144,166 @@ class GrpcOrderServiceTest {
         // Then
         assertEquals(0, response.successCount)
         assertEquals(0, response.failCount)
+    }
+
+    @Test
+    fun `manageOrders should return success response for new order`() = runTest {
+        // Given
+        doNothing().whenever(executionService).processOrder(any())
+
+        val requests = flowOf(
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 1L
+                    stockCode = "005930"
+                    orderType = OrderType.ORDER_TYPE_BUY
+                    quantity = 10
+                    price = "50000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_NEW
+                }
+                clientRequestId = 100L
+            }
+        )
+
+        // When
+        val responses = grpcOrderService.manageOrders(requests).toList()
+
+        // Then
+        assertEquals(1, responses.size)
+        assertEquals(100L, responses[0].clientRequestId)
+        assertEquals(true, responses[0].success)
+        assertEquals("", responses[0].errorMessage)
+    }
+
+    @Test
+    fun `manageOrders should return failure response when order processing fails`() = runTest {
+        // Given
+        whenever(executionService.processOrder(any())).thenThrow(RuntimeException("Insufficient balance"))
+
+        val requests = flowOf(
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 2L
+                    stockCode = "005930"
+                    orderType = OrderType.ORDER_TYPE_BUY
+                    quantity = 10
+                    price = "50000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_NEW
+                }
+                clientRequestId = 200L
+            }
+        )
+
+        // When
+        val responses = grpcOrderService.manageOrders(requests).toList()
+
+        // Then
+        assertEquals(1, responses.size)
+        assertEquals(200L, responses[0].clientRequestId)
+        assertEquals(false, responses[0].success)
+        assertEquals("Insufficient balance", responses[0].errorMessage)
+    }
+
+    @Test
+    fun `manageOrders should handle mixed success and failure`() = runTest {
+        // Given
+        doNothing()
+            .doThrow(RuntimeException("Order failed"))
+            .doNothing()
+            .whenever(executionService).processOrder(any())
+
+        val requests = flowOf(
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 1L
+                    stockCode = "005930"
+                    orderType = OrderType.ORDER_TYPE_BUY
+                    quantity = 10
+                    price = "50000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_NEW
+                }
+                clientRequestId = 1L
+            },
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 2L
+                    stockCode = "000660"
+                    orderType = OrderType.ORDER_TYPE_BUY
+                    quantity = 5
+                    price = "120000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_NEW
+                }
+                clientRequestId = 2L
+            },
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 3L
+                    stockCode = "035720"
+                    orderType = OrderType.ORDER_TYPE_SELL
+                    quantity = 20
+                    price = "80000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_NEW
+                }
+                clientRequestId = 3L
+            }
+        )
+
+        // When
+        val responses = grpcOrderService.manageOrders(requests).toList()
+
+        // Then
+        assertEquals(3, responses.size)
+        assertEquals(true, responses[0].success)
+        assertEquals(false, responses[1].success)
+        assertEquals("Order failed", responses[1].errorMessage)
+        assertEquals(true, responses[2].success)
+    }
+
+    @Test
+    fun `manageOrders should return empty list when stream is empty`() = runTest {
+        // Given
+        val requests = emptyFlow<OrderManagementRequest>()
+
+        // When
+        val responses = grpcOrderService.manageOrders(requests).toList()
+
+        // Then
+        assertEquals(0, responses.size)
+    }
+
+    @Test
+    fun `manageOrders should handle cancel order action`() = runTest {
+        // Given
+        doNothing().whenever(executionService).processOrder(any())
+
+        val requests = flowOf(
+            orderManagementRequest {
+                order = order {
+                    orderNumber = 10L
+                    stockCode = "005930"
+                    orderType = OrderType.ORDER_TYPE_BUY
+                    quantity = 10
+                    price = "50000"
+                    priceType = PriceType.PRICE_TYPE_LIMIT
+                    action = OrderAction.ORDER_ACTION_CANCEL
+                    originalOrderNumber = 1L
+                }
+                clientRequestId = 300L
+            }
+        )
+
+        // When
+        val responses = grpcOrderService.manageOrders(requests).toList()
+
+        // Then
+        assertEquals(1, responses.size)
+        assertEquals(300L, responses[0].clientRequestId)
+        assertEquals(true, responses[0].success)
     }
 
 }
