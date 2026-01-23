@@ -91,3 +91,20 @@ fun DomainOrderStatus.toProto(): OrderStatus =
         DomainOrderStatus.CANCELLED -> OrderStatus.ORDER_STATUS_CANCELLED
         DomainOrderStatus.MODIFIED -> OrderStatus.ORDER_STATUS_MODIFIED
     }
+
+fun OrderRequest.toDomainOrder(): DomainOrder =
+    DomainOrder(
+        stockCode = this.stockCode,
+        orderType = when (this.orderType) {
+            OrderType.ORDER_TYPE_BUY -> DomainOrderType.BUY
+            OrderType.ORDER_TYPE_SELL -> DomainOrderType.SELL
+            else -> DomainOrderType.BUY
+        },
+        quantity = this.quantity,
+        price = BigDecimal(this.price),
+        priceType = when (this.priceType) {
+            PriceType.PRICE_TYPE_LIMIT -> DomainPriceType.LIMIT
+            PriceType.PRICE_TYPE_MARKET -> DomainPriceType.MARKET
+            else -> DomainPriceType.LIMIT
+        },
+    )

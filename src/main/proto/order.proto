@@ -66,7 +66,21 @@ message OrderStatusUpdate {
   OrderStatus order_status = 1;
 }
 
+message OrderRequest {
+  string stock_code = 1;
+  OrderType order_type = 2;
+  int32 quantity = 3;
+  string price = 4;
+  PriceType price_type = 5;
+}
+
+message OrderResponse {
+  int32 success_count = 1;
+  int32 fail_count = 2;
+}
+
 service OrderService {
   rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
   rpc WatchOrderStatus(WatchOrderStatusRequest) returns (stream OrderStatusUpdate);
+  rpc CreateBulkOrder(stream OrderRequest) returns (OrderResponse);
 }

@@ -7,12 +7,15 @@ import io.grpc.StatusException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class GrpcOrderService(
     private val executionService: ExecutionService
 ) : OrderServiceGrpcKt.OrderServiceCoroutineImplBase() {
+    private val logger = LoggerFactory.getLogger(javaClass)
+
     override suspend fun getOrder(request: GetOrderRequest): GetOrderResponse {
         val domainOrder = executionService.getOrder(request.orderNumber)
             ?: throw StatusException(
@@ -42,6 +45,26 @@ class GrpcOrderService(
             }
 
             delay(500)  // 폴링 간격
+        }
+    }
+
+    override suspend fun createBulkOrder(requests: Flow<OrderRequest>): OrderResponse {
+        var ok = 0
+        var ng = 0
+
+        requests.collect { request ->
+            try {
+                executionService.processOrder(request.toDomainOrder())
+                ok++
+            } catch (e: Exception) {
+                logger.error("error occurued ${e.message}")
+                ng++
+            }
+        }
+
+        return orderResponse {
+            successCount = ok
+            failCount = ng
         }
     }
 }
