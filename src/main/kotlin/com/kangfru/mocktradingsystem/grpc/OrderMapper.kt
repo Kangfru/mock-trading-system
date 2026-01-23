@@ -1,6 +1,7 @@
 package com.kangfru.mocktradingsystem.grpc
 
 import com.google.protobuf.timestamp
+import com.kangfru.mocktradingsystem.ws.message.WsCreateOrderRequest
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDateTime
@@ -107,4 +108,13 @@ fun OrderRequest.toDomainOrder(): DomainOrder =
             PriceType.PRICE_TYPE_MARKET -> DomainPriceType.MARKET
             else -> DomainPriceType.LIMIT
         },
+    )
+
+fun WsCreateOrderRequest.toDomain(): DomainOrder =
+    DomainOrder(
+        stockCode = this.stockCode,
+        orderType = this.orderType,
+        quantity = this.quantity,
+        price = this.price,
+        priceType = this.priceType
     )
