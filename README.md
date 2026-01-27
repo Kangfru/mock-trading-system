@@ -9,6 +9,7 @@ Kotlin + Spring Boot 기반의 모의 주식 거래 시스템
 - **Build**: Gradle Kotlin DSL
 - **Messaging**: Apache Kafka
 - **RPC**: gRPC (Kotlin Coroutines)
+- **WebSocket**: Spring WebFlux WebSocket (Reactive)
 - **Market Data**: Stooq API (미국 주식 시세)
 
 ## Features
@@ -37,6 +38,13 @@ Kotlin + Spring Boot 기반의 모의 주식 거래 시스템
 - **Client Streaming**: 대량 주문 일괄 처리 (`CreateBulkOrder`)
 - **Bidirectional Streaming**: 실시간 주문 관리 세션 (`ManageOrders`)
 - Reflection 지원 (grpcurl 사용 가능)
+
+### WebSocket API
+- **실시간 양방향 통신**: 단일 연결로 주문/조회/취소 처리
+- **메시지 타입**: CREATE_ORDER, QUERY_ORDER, CANCEL_ORDER, GET_PORTFOLIO
+- **Rate Limiting**: Fixed Window 방식 (세션당 초당 5회 제한)
+- **세션 관리**: 연결별 독립적인 Rate Limiter 및 세션 추적
+- **CORS 지원**: 개발 환경 전체 허용
 
 ### 시세 조회
 - Stooq API 연동 (API Key 불필요)
@@ -181,6 +189,82 @@ grpcurl -plaintext localhost:9090 list
 grpcurl -plaintext localhost:9090 describe order.OrderService
 ```
 
+### WebSocket (ws://localhost:8080/ws/trading)
+
+#### 연결
+```javascript
+const ws = new WebSocket('ws://localhost:8080/ws/trading');
+```
+
+#### 주문 생성 (CREATE_ORDER)
+```json
+// 요청
+{
+  "type": "CREATE_ORDER",
+  "requestId": "uuid-1234",
+  "stockCode": "AAPL",
+  "orderType": "BUY",
+  "quantity": 10,
+  "price": 150.00,
+  "priceType": "LIMIT"
+}
+
+// 응답
+{
+  "type": "ORDER_CREATED",
+  "requestId": "uuid-1234",
+  "success": true,
+  "orderNumber": 123456789
+}
+```
+
+#### 주문 조회 (QUERY_ORDER)
+```json
+// 요청
+{
+  "type": "QUERY_ORDER",
+  "requestId": "uuid-1235",
+  "orderNumber": 123456789
+}
+
+// 응답
+{
+  "type": "ORDER_QUERIED",
+  "requestId": "uuid-1235",
+  "success": true,
+  "order": { ... }
+}
+```
+
+#### 포트폴리오 조회 (GET_PORTFOLIO)
+```json
+// 요청
+{
+  "type": "GET_PORTFOLIO",
+  "requestId": "uuid-1236",
+  "accountNumber": "ACC001"
+}
+
+// 응답
+{
+  "type": "PORTFOLIO_DATA",
+  "requestId": "uuid-1236",
+  "success": true,
+  "holdings": [ ... ]
+}
+```
+
+#### Rate Limit 초과 시
+```json
+{
+  "type": "ERROR",
+  "requestId": "uuid-1237",
+  "success": false,
+  "errorCode": "TOO_MANY_REQUESTS",
+  "errorMessage": "Too Many Requests"
+}
+```
+
 ## Quick Start
 
 ```bash
@@ -239,8 +323,21 @@ src/main/kotlin/com/kangfru/mocktradingsystem/
 │   ├── ExecutionService.kt     # 체결 서비스
 │   ├── UserService.kt          # 사용자 서비스
 │   └── AccountService.kt       # 계좌 서비스
-└── util/
-    └── SnowflakeIdGenerator.kt # 분산 ID 생성
+├── util/
+│   └── SnowflakeIdGenerator.kt # 분산 ID 생성
+└── ws/
+    ├── config/
+    │   └── WebSocketConfig.kt      # WebSocket 라우팅 및 CORS 설정
+    ├── handler/
+    │   └── TradingWebSocketHandler.kt  # WebSocket 메시지 처리
+    ├── message/
+    │   ├── WsRequest.kt            # 요청 메시지 (sealed class)
+    │   └── WsResponse.kt           # 응답 메시지 (sealed class)
+    ├── ratelimit/
+    │   ├── RateLimiter.kt          # Fixed Window Rate Limiter
+    │   └── RateLimiterManager.kt   # 세션별 Rate Limiter 관리
+    └── session/
+        └── SessionManager.kt       # WebSocket 세션 관리
 
 src/main/proto/
 └── order.proto                 # gRPC 서비스 정의
@@ -259,7 +356,8 @@ src/main/proto/
 
 | Service | Port  |
 |---------|-------|
-| REST API | 44732 |
+| REST API | 8080 |
+| WebSocket | 8080 (ws://localhost:8080/ws/trading) |
 | gRPC | 9090  |
 | Kafka | 9092  |
 | Kafka UI | 38080 |
@@ -267,38 +365,44 @@ src/main/proto/
 ## Architecture
 
 ```
-┌─────────────┐     ┌─────────────┐
-│  REST API   │     │  gRPC API   │
-│   :8080     │     │   :9090     │
-└──────┬──────┘     └──────┬──────┘
-       │                   │
-       ▼                   ▼
-┌─────────────────────────────────┐
-│        OrderProducer            │
-└──────────────┬──────────────────┘
-               │
-               ▼
-┌─────────────────────────────────┐
-│            Kafka                │
-│           :9092                 │
-└──────────────┬──────────────────┘
-               │
-               ▼
-┌─────────────────────────────────┐
-│        OrderConsumer            │
-└──────────────┬──────────────────┘
-               │
-               ▼
-┌─────────────────────────────────┐
-│       ExecutionService          │
-│    (주문 저장 & 상태 관리)        │
-└──────────────┬──────────────────┘
-               │
-               ▼
-┌─────────────────────────────────┐
-│       OrderBookService          │
-│     (호가창 & 매칭 엔진)          │
-└─────────────────────────────────┘
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│  REST API   │  │  gRPC API   │  │  WebSocket  │
+│   :8080     │  │   :9090     │  │ /ws/trading │
+└──────┬──────┘  └──────┬──────┘  └──────┬──────┘
+       │                │                │
+       │                │                ▼
+       │                │         ┌─────────────┐
+       │                │         │ RateLimiter │
+       │                │         │  Manager    │
+       │                │         └──────┬──────┘
+       │                │                │
+       ▼                ▼                ▼
+┌─────────────────────────────────────────────────┐
+│                 OrderProducer                    │
+└──────────────────────┬──────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────┐
+│                    Kafka                         │
+│                   :9092                          │
+└──────────────────────┬──────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────┐
+│                 OrderConsumer                    │
+└──────────────────────┬──────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────┐
+│              ExecutionService                    │
+│           (주문 저장 & 상태 관리)                  │
+└──────────────────────┬──────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────┐
+│              OrderBookService                    │
+│            (호가창 & 매칭 엔진)                    │
+└─────────────────────────────────────────────────┘
 ```
 
 ## gRPC 통신 패턴
@@ -375,3 +479,5 @@ service OrderService {
 - **Snowflake ID**: 분산 환경에서 고유한 주문번호 생성
 - **Coroutines**: 사용자/계좌 서비스는 Kotlin Coroutines 기반 비동기 처리
 - **gRPC Streaming**: Kotlin Flow와 Coroutines를 활용한 비동기 스트리밍 구현
+- **WebSocket Rate Limiting**: Fixed Window 방식으로 세션당 초당 5회 요청 제한 (CAS 기반 Thread-safe 구현)
+- **WebSocket Session Management**: ConcurrentHashMap 기반 세션 관리, 연결 종료 시 자동 리소스 정리
