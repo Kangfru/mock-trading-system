@@ -1,6 +1,8 @@
 package com.kangfru.mocktradingsystem.grpc
 
 import com.google.protobuf.timestamp
+import com.kangfru.mocktradingsystem.domain.StockHolding
+import com.kangfru.mocktradingsystem.ws.message.StockHoldingDto
 import com.kangfru.mocktradingsystem.ws.message.WsCreateOrderRequest
 import java.math.BigDecimal
 import java.time.Instant
@@ -117,4 +119,12 @@ fun WsCreateOrderRequest.toDomain(): DomainOrder =
         quantity = this.quantity,
         price = this.price,
         priceType = this.priceType
+    )
+
+fun StockHolding.toStockHoldingDto(): StockHoldingDto =
+    StockHoldingDto(
+        stockCode = this.stockCode,
+        quantity = this.quantity,
+        averagePrice = this.averagePrice,
+        currentValue = this.totalValue
     )

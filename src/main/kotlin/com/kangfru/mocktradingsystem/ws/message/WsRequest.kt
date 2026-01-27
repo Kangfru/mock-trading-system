@@ -52,7 +52,12 @@ data class WsQueryOrderRequest(
  */
 data class WsCancelOrderRequest(
     override val requestId: String,
-    val orderNumber: Long
+    val orderNumber: Long,
+    val originalOrderNumber: Long,
+    val stockCode: String,
+    val orderType: OrderType,
+    val quantity: Int,
+    val price: BigDecimal
 ) : WsRequest()
 
 /**
